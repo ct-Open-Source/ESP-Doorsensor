@@ -32,9 +32,7 @@ void setup() {
 
 void transmitStatus(bool sessionPresent) {
   iot.mqtt.subscribe(delaySleepTopic.c_str(), 1);
-  Serial.println("Transmit");
-  
-  Serial.println(statusTopic);
+ 
   if (sensorValue == 0) {
 
     DEBUG_PRINTLN("Door open");
@@ -68,10 +66,7 @@ void transmitStatus(bool sessionPresent) {
 }
 
 void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
-  Serial.println(topic);
-    Serial.println(payload);
   if (topic == delaySleepTopic.c_str()) {
-
     if (payload == "true")  {
       delaySleep = true;
     } else  {
@@ -87,7 +82,7 @@ void suspendESP(uint16_t packetId) {
 
   if (packetId == statusPacketIdSub) {
     if (delaySleep == true) {
-      Serial.println("Delaying Sleep");
+      DEBUG_PRINTLN("Delaying Sleep");
       return;
     }
     DEBUG_PRINTLN("Entering deep sleep");
