@@ -7,8 +7,10 @@ static const int SensorPin = 33;
 static const int BatteryPin = 34;
 int sensorValue = 0;
 int batteryLimit = 3300;
+bool delaySleep = false;
 
 uint16_t statusPacketIdSub = 0;
+String delaySleepTopic;
 String statusTopic;
 String batteryTopic;
 String batteryValueTopic;
@@ -18,9 +20,10 @@ void setup() {
   pinMode(BatteryPin, INPUT);
   sensorValue = digitalRead(SensorPin);
   iot.begin();
+  delaySleepTopic = "cmd/" + iot.hostname + "/delaysleep";
   statusTopic = "stat/" + iot.hostname + "/status";
   batteryTopic = "stat/" + iot.hostname + "/battery";
-  batteryValueTopic = "stat/" + iot.hostname + "/battery/value";
+  batteryValueTopic = "stat/" + iot.hostname + "/batteryvalue";
 
   iot.mqtt.onConnect(transmitStatus);
   iot.mqtt.onPublish(suspendESP);
@@ -28,6 +31,9 @@ void setup() {
 }
 
 void transmitStatus(bool sessionPresent) {
+  iot.mqtt.subscribe(delaySleepTopic.c_str(), 1);
+  Serial.println("Transmit");
+  
   Serial.println(statusTopic);
   if (sensorValue == 0) {
 
@@ -58,15 +64,34 @@ void transmitStatus(bool sessionPresent) {
     iot.mqtt.publish(batteryTopic.c_str(), 1, true, "full" );
 
   }
+  DEBUG_PRINTLN("Data published");
+}
+
+void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+  Serial.println(topic);
+    Serial.println(payload);
+  if (topic == delaySleepTopic.c_str()) {
+
+    if (payload == "true")  {
+      delaySleep = true;
+    } else  {
+      delaySleep = false;
+      suspendESP(statusPacketIdSub);
+    }
+  }
 }
 
 void suspendESP(uint16_t packetId) {
   delay(150);
-  DEBUG_PRINTLN("Data published");
+ 
 
   if (packetId == statusPacketIdSub) {
-
+    if (delaySleep == true) {
+      Serial.println("Delaying Sleep");
+      return;
+    }
     DEBUG_PRINTLN("Entering deep sleep");
+    iot.mqtt.disconnect();
     esp_deep_sleep_start();
 
   }
