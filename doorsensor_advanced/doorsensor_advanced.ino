@@ -120,5 +120,9 @@ void suspendESP(uint16_t packetId) {
 }
 
 void loop() {
-
+	// Check if the ESP is up for more than 30s and shut it down to save the battery.
+	if (millis() > 30000) {
+    		DEBUG_PRINTLN("Entering deep sleep after 30s of idle");
+		esp_deep_sleep_start();
+	}
 }
